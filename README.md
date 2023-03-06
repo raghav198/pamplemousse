@@ -6,10 +6,12 @@ ProofMouse is a proof assistant for a propositional logic based on Gentzen-style
     * [Installation](#installation)
     * [Writing Proofs](#writing-proofs)
     * [Checking Proofs](#checking-proofs)
+    * [Predicate Logic](#predicate-logic)
 *  [Inference Rules Reference](#inference-rules-reference)
     * [Directional Inference Rules](#directional-inference-rules)
     * [Deduction Method](#peculiarities-of-hypothetical-worlds-and-deduction-blocks)
     * [Equivalence Rules](#equivalence-rules)
+    * [Predicate Logic Rules](#predicate-logic-rules)
 ## Getting Started
 
 ### Installation
