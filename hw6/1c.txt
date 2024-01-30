@@ -1,6 +1,0 @@
-~C(Einstein)
-1. C(Einstein) -> ~(exists x, I(x) /\ D(x, GravWave)) prem;
-2. I(LIGOInst) /\ D(LIGOInst, GravWave) prem;
-3. exists x, I(x) /\ D(x, GravWave) eg 2;
-4. ~~(exists x, I(x) /\ D(x, GravWave)) dn 3;
-5. ~C(Einstein) mt 1, 4;

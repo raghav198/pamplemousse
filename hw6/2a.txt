@@ -1,8 +1,0 @@
-(forall x, P(x)) -> (exists y, Q(y))
-1. exists x, (P(x) -> Q(x)) prem;
-| 2. forall x, P(x) hyp;
-| 3. P(Foo) -> Q(Foo) ei 1;
-| 4. P(Foo) ui 2;
-| 5. Q(Foo) mp 3, 4;
-| 6. exists y, Q(y) eg 5;
-7. (forall x, P(x)) -> (exists y, Q(y)) ded 2-6;

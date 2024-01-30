@@ -1,5 +1,0 @@
-Mortal(Socrates)
-1. forall x, Man(x) -> Mortal(x) prem;
-2. Man(Socrates) prem;
-3. Man(Socrates) -> Mortal(Socrates) ui 1;
-4. Mortal(Socrates) mp 3, 2;
