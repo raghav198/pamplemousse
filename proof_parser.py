@@ -18,22 +18,27 @@ just ::= [a-z]* args?
 args ::= num | num, args
 """
 
+
 def BaseAction(n):
     return BaseProp(n[0])
 
+
 def NotAction(n):
     return Not(n[1])
+
 
 def ConjAction(n):
     if len(n) == 1:
         return n[0]
     return And(ConjAction(n[:-1]), n[-1])
 
+
 def DisjAction(n):
     if len(n) == 1:
         return n[0]
     return Or(DisjAction(n[:-1]), n[-1])
-    
+
+
 def FormAction(n):
     if len(n) == 1:
         return n[0]
@@ -43,26 +48,46 @@ def FormAction(n):
 def ForAllAction(n):
     return ForAll(ModelRef(n[0]), n[1])
 
+
 def ExistsAction(n):
     return Exists(ModelRef(n[0]), n[1])
-        
+
+
 def PredicateAction(n):
     return Predicate(BaseProp(n[0]), tuple(map(ModelRef, n[1:])))
 
+
 model_ref = pp.Word(init_chars=pp.alphas)
-predicate = pp.Word(init_chars=pp.alphas) + pp.Suppress('(') + pp.delimited_list(model_ref, ',') + pp.Suppress(')')
+predicate = (
+    pp.Word(init_chars=pp.alphas)
+    + pp.Suppress("(")
+    + pp.delimited_list(model_ref, ",")
+    + pp.Suppress(")")
+)
 form = pp.Forward()
 prop = pp.Forward()
-prop <<= predicate.set_parse_action(PredicateAction) | pp.Char(pp.alphas.upper()).set_parse_action(BaseAction) | (pp.Suppress('(') + form + pp.Suppress(')')) | ('~' + prop).set_parse_action(NotAction)
-conj = (pp.ZeroOrMore((prop + pp.Suppress('/\\'))) + prop)
-disj = (pp.ZeroOrMore((conj + pp.Suppress('\\/'))) + conj)
-form <<= (disj + pp.ZeroOrMore((pp.Suppress('->') + disj))) | \
-            (pp.Suppress('exists') + model_ref + pp.Suppress(',') + form).set_parse_action(ExistsAction) | \
-            (pp.Suppress('forall') + model_ref + pp.Suppress(',') + form).set_parse_action(ForAllAction)
+prop <<= (
+    predicate.set_parse_action(PredicateAction)
+    | pp.Char(pp.alphas.upper()).set_parse_action(BaseAction)
+    | (pp.Suppress("(") + form + pp.Suppress(")"))
+    | ("~" + prop).set_parse_action(NotAction)
+)
+conj = pp.ZeroOrMore((prop + pp.Suppress("/\\"))) + prop
+disj = pp.ZeroOrMore((conj + pp.Suppress("\\/"))) + conj
+form <<= (
+    (disj + pp.ZeroOrMore((pp.Suppress("->") + disj)))
+    | (pp.Suppress("exists") + model_ref + pp.Suppress(",") + form).set_parse_action(
+        ExistsAction
+    )
+    | (pp.Suppress("forall") + model_ref + pp.Suppress(",") + form).set_parse_action(
+        ForAllAction
+    )
+)
 
 conj.set_parse_action(ConjAction)
 disj.set_parse_action(DisjAction)
 form.set_parse_action(FormAction)
+
 
 def NumAction(result):
     return int(result[0])
@@ -70,6 +95,7 @@ def NumAction(result):
 
 def ArgRange(result):
     return list(range(result[0], result[1] + 1))
+
 
 def JustAction(result):
     return UninterpJust(result[0], result[1:])
@@ -88,27 +114,34 @@ def ProofActionWithContext(ctx: Context):
                 external_proofs.append(line[0])
             else:
                 main_proof.append(line[0])
-        
+
         proof = Proof(main_proof)
         ctx.add_proof(proof)
-        
+
         return proof
 
     return ProofAction
 
+
 proof = pp.Forward()
 num = pp.Word(pp.nums).set_parse_action(NumAction)
-line_start = pp.Combine(num + pp.Suppress('.')).set_parse_action(NumAction)
-args = ((num + pp.Suppress('-') + num).set_parse_action(ArgRange) | pp.delimited_list(num, ','))
-just = (pp.Word(pp.alphas.lower() + '_') + pp.Optional(args)).set_parse_action(JustAction)
-comment_line = pp.Suppress(pp.QuotedString(quote_char='/*', end_quote_char='*/', multiline=True))
-single_line = (line_start + form + just).set_parse_action(LineAction) + pp.Suppress(';')
-embedded_proof = pp.Suppress('{') + proof + pp.Suppress('}')
+line_start = pp.Combine(num + pp.Suppress(".")).set_parse_action(NumAction)
+args = (num + pp.Suppress("-") + num).set_parse_action(ArgRange) | pp.delimited_list(
+    num, ","
+)
+just = (pp.Word(pp.alphas.lower() + "_") + pp.Optional(args)).set_parse_action(
+    JustAction
+)
+comment_line = pp.Suppress(
+    pp.QuotedString(quote_char="/*", end_quote_char="*/", multiline=True)
+)
+single_line = (line_start + form + just).set_parse_action(LineAction) + pp.Suppress(";")
+embedded_proof = pp.Suppress("{") + proof + pp.Suppress("}")
 line = single_line | embedded_proof
 proof <<= pp.OneOrMore(pp.Group(line) | comment_line)
 
-if __name__ == '__main__':
-    print(form.parse_string(r'P /\ Q'))
+if __name__ == "__main__":
+    print(form.parse_string(r"P /\ Q"))
 
 # text = r'''1. ~(Q /\ ~Z) prem;
 # 2. ~Q \/ ~~Z dm 1;
@@ -135,7 +168,6 @@ if __name__ == '__main__':
 #     ctx.check()
 # except pp.ParseException as e:
 #     print(e.explain())
-    
 
 
 # try:
