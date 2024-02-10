@@ -1,7 +1,11 @@
+# This file is the list of propositions
+
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Union
 
+
+### These form the type tree ###
 
 @dataclass(eq=True, frozen=True)
 class BaseProp:
@@ -11,7 +15,7 @@ class BaseProp:
         return self.name
 
 
-# variable
+# Variable proposition
 @dataclass(eq=True, frozen=True)
 class PropHole:
     name: str
@@ -37,7 +41,7 @@ class Or:
     def __repr__(self) -> str:
         return rf"({self.p} \/ {self.q})"
 
-
+# a -> b
 @dataclass(eq=True, frozen=True)
 class Imp:
     p: Prop
@@ -49,7 +53,7 @@ class Imp:
         return f"({self.p} -> {self.q})"
 
 
-# these go to predicates
+# Predicate base type
 @dataclass(eq=True, frozen=True)
 class ModelRef:
     name: str
@@ -58,7 +62,7 @@ class ModelRef:
         return self.name
 
 
-# these go to predicates
+# Predicate variable
 @dataclass(eq=True, frozen=True)
 class ModelRefHole:
     name: str
@@ -97,7 +101,7 @@ class Exists:
 def Not(p: Prop) -> Prop:
     return Imp(p, False)
 
-
+# Bundle 
 Prop = Union[
     BaseProp,
     PropHole,
@@ -112,8 +116,9 @@ Prop = Union[
     Literal[False],
 ]
 
+### These are type checking actions on the type tree ###
 
-# A -> B
+# A -> B ?
 def apply(f: Prop, x: Prop) -> Prop:
     assert isinstance(f, Imp), f"{f} is not an implication!"
     assert f.p == x, f"Implication expects {f.p}, got {x}!"
@@ -127,12 +132,13 @@ def compose(f: Prop, g: Prop) -> Prop:
     return Imp(f.p, g.q)
 
 
-# example a or b |- a
+# a or b |- a ?
 def proj_L(p: Prop) -> Prop:
     assert isinstance(p, And), f"{p} is not a conjunction!"
     return p.p
 
 
+# a or b |- b ?
 def proj_R(p: Prop) -> Prop:
     assert isinstance(p, And), f"{p} is not a conjunction!"
     return p.q
