@@ -7,23 +7,34 @@ from props import *
 if TYPE_CHECKING:
     from proof import Line
 
-# checking if formulas are equal
+# The unification function attempts to determine if two propositions (p and q) can be made identical
+# through substitution. It takes two propositions and two dictionaries:
+# subst, which maps variable names in propositions to propositions, and
+# var_subst, which is intended for model-specific substitutions.
+# Returns True if the propositions can be unified under the given substitutions, False otherwise.
 def unify(
     p: Prop, q: Prop, subst: Dict[str, Prop] = {}, var_subst: Dict[str, ModelRef] = {}
 ) -> bool:
+
+    # Handle the case where either p or q is a PropHole (a placeholder for a proposition)
     if PropHole in (type(p), type(q)):
+
+        # Determine which of p or q is the PropHole and set the other as the expression to substitute
         if type(p) is PropHole:
-            hole, exp = p.name, q
+            hole, exp = p.name, q   # if p is the placeholder, q is the expression
         else:
-            assert type(q) is PropHole  # mypy
-            hole, exp = q.name, p
+            assert type(q) is PropHole  
+            hole, exp = q.name, p   # if q is the placeholder, p is the expression
 
+        # If the placeholder already has a substitution, check if it matches the current expression
         if hole in subst:
-            return subst[hole] == exp
+            return subst[hole] == exp # True if the substitution is consistent, False otherwise
 
+        # Assign the expression to the placeholder in subst and return True
         subst[hole] = exp
         return True
 
+    # Similar case as before, but for predicates
     if ModelRefHole in (type(p), type(q)):
         if type(p) is ModelRefHole:
             hole, exp = p.name, q
@@ -40,6 +51,8 @@ def unify(
         var_subst[hole] = exp
         return True
 
+    ### After variables are resolved, case match recursively.
+    #
     # match p, q:
     #     case (And(a, b), And(c, d)) | (Or(a, b), Or(c, d)) | (Imp(a, b), Imp(c, d)):
     #         return unify(a, c, subst) and unify(b, d, subst)
@@ -52,6 +65,7 @@ def unify(
     #     case _:
     #         return False
 
+    ### This code follows the above pseudocode 
     if (
         (isinstance(p, And) and isinstance(q, And))
         or ((isinstance(p, Or) and isinstance(q, Or)))
@@ -84,29 +98,48 @@ def unify(
 
 
 def diff_tree(p: Prop, q: Prop) -> tuple[Prop, Prop]:
+    # Compares two propositions and identifies their differences.
+    # Returns a tuple of the differing parts of the propositions.
+
+    # Handles compound logical expressions (And, Or, Imp) by checking if both propositions
+    # are of the same type and then recursively identifying differences in their components.
     if (
         (isinstance(p, And) and isinstance(q, And))
         or ((isinstance(p, Or) and isinstance(q, Or)))
         or ((isinstance(p, Imp) and isinstance(q, Imp)))
     ):
+        # If both components of the propositions are different, return the propositions as is.
         if p.p != q.p and p.q != q.q:
             return p, q
+        # If the left components are equal, recurse on the right components.
         if p.p == q.p:
             return diff_tree(p.q, q.q)
+        # If the right components are equal, recurse on the left components.
         if p.q == q.q:
             return diff_tree(p.p, q.p)
+        # Assert failure if propositions are considered equal but shouldn't be; likely a logic error.
         assert False, f"{p} == {q}"
+
+    # Handles quantified expressions (ForAll, Exists) by comparing the bound variable
+    # and recursively comparing the formula if the variables are the same.
     elif (isinstance(p, ForAll) and isinstance(q, ForAll)) or (
         isinstance(p, Exists) and isinstance(q, Exists)
     ):
         if p.var == q.var:
             return diff_tree(p.formula, q.formula)
         return p, q
+
+    # Handles predicates by directly asserting they are not equal if they are of the same type.
+    # Returns the propositions as differing if the assertion doesn't fail.
     elif isinstance(p, Predicate) and isinstance(q, Predicate):
         assert p != q, f"{p} == {q}"
         return p, q
+
+    # For all other cases, return the propositions as is, indicating they differ.
     else:
         return p, q
+
+    ### simplified match case pseudocode
     # match p, q:
     #     case (And(a, b), And(c, d)) | (Or(a, b), Or(c, d)) | (Imp(a, b), Imp(c, d)):
     #         if a != c and b != d:
@@ -121,22 +154,37 @@ def diff_tree(p: Prop, q: Prop) -> tuple[Prop, Prop]:
 
 
 def try_rewrite(transformation, rule):
+    # Attempts to apply a transformation rule to a given transformation of propositions.
+    # transformation: A tuple of two propositions indicating the original and the intended transformation.
+    # rule: A tuple of two propositions representing the rule for rewriting.
+    
+    # Check if the transformation is trivial (no change), returning an empty substitution if so.
     if transformation[0] == transformation[1]:
         return {}
+
+    # Use diff_tree to identify the specific components of the transformation and rule that differ.
     old_t, new_t = diff_tree(*transformation)
     old_r, new_r = rule
 
     def rewrite():
+
+        # Initialize dictionaries for substitutions.
         subst = {}
         var_subst = {}
+
+        # Assert that the old and new components of both the transformation and rule can be unified.
+        # If unification fails, it indicates the rule cannot be applied, raising an AssertionError.
         assert unify(old_t, old_r, subst, var_subst) and unify(
             new_t, new_r, subst, var_subst
         ), f"Failed to apply rule {old_r} <=> {new_r} to {transformation[0]} => {transformation[1]}!"
         return subst, var_subst
 
     try:
+        # Attempt the rewrite. Return the substitution results if successful.
         return rewrite()
     except AssertionError:
+
+        # If the initial rewrite attempt fails, swap the rule components and try again.
         old_r, new_r = new_r, old_r
         return rewrite()
 
@@ -144,6 +192,13 @@ def try_rewrite(transformation, rule):
 def alpha_renaming(
     orig: Prop, new: Prop, orig_var: ModelRef, subst: Dict[ModelRef, ModelRef] = {}
 ):
+    # Performs alpha renaming on propositions to ensure variable names are consistent.
+    # orig: The original proposition.
+    # new: The proposition after some transformation.
+    # orig_var: The original variable to be renamed.
+    # subst: A dictionary for tracking substitutions made during the renaming process.
+    
+    # Assert that the original and new propositions are of the same type, which is a prerequisite for renaming.
     assert type(orig) == type(
         new
     ), "Statements differ in more than just variable names!"
@@ -182,6 +237,10 @@ def alpha_renaming(
 
 
 def formula_uses(formula: Prop, var_name: ModelRef):
+    # Determines if a given variable (var_name) is used within a logical formula.
+    # This function recursively traverses the formula to check for the presence of the variable.
+
+    # For compound logical expressions (And, Or, Imp), recursively check both sides of the expression.
     if isinstance(formula, And) or isinstance(formula, Or) or isinstance(formula, Imp):
         return formula_uses(formula.p, var_name) or formula_uses(formula.q, var_name)
     elif isinstance(formula, ForAll) or isinstance(formula, Exists):
