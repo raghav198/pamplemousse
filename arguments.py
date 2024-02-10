@@ -1,3 +1,5 @@
+# An abstraction layer above props.py and unification.py
+
 from __future__ import annotations
 from collections import defaultdict
 
@@ -8,28 +10,32 @@ from unification import alpha_renaming
 from unification import formula_uses
 from unification import get_symbols
 
+# Conditional imports for type checking, avoiding circular dependencies.
 if TYPE_CHECKING:
     from proof import Line, Context
 
-
+# Implements the Modus Ponens argument: If "P implies Q" and "P" then "Q".
 class ModusPonens(Argument):
     def __init__(self, imp: Line, ante: Line) -> None:
-        self.imp = imp
-        self.ante = ante
+        self.imp = imp # The line stating "P implies Q"
+        self.ante = ante # The line stating "P"
 
     def typecheck(self, expected: Prop) -> bool:
+        # Verifies that applying the argument to the antecedent yields the expected proposition.
         return apply(self.imp.typ, self.ante.typ) == expected
 
     def __repr__(self) -> str:
         return f"mp {self.imp.num}, {self.ante.num}"
 
 
+# Implements the Modus Tollens argument: If "P implies Q" and "not Q" then "not P".
 class ModusTollens(Argument):
     def __init__(self, imp: Line, cont: Line) -> None:
-        self.imp = imp
-        self.cont = cont
+        self.imp = imp      # "P implies Q"
+        self.cont = cont    # "not Q"
 
     def typecheck(self, expected: Prop) -> bool:
+        # Checks if the contrapositive application is logically valid.
         assert (
             isinstance(self.cont.typ, Imp) and self.cont.typ.q is False
         ), f"{self.cont.num}: {self.cont.typ} is not a negation!"
@@ -307,17 +313,22 @@ def combine_variable_contexts(ctxs: tuple[Dict[str, Set[str]]]):
     return dict(acc)
 
 
+# Represents an uninterpreted justification for a step in a proof, to be
+# dynamically interpreted based on its name.
 class UninterpJust:
     def __init__(self, name: str, args: List[int]) -> None:
         self.name = name
         self.args = args
 
+    # Interprets the justification within the given proof context, returning
+    # the corresponding Argument instance.
     def interpret(self, ctx: Context) -> tuple[Argument, Dict[str, Set[str]]]:
 
         variables = combine_variable_contexts(
             tuple(ctx.lines[arg].variables for arg in self.args)
         )
 
+        # Specific handling for deduction and other named justifications.
         if self.name == "ded":
             assert (
                 tuple(sorted(self.args)) in ctx.proofs
