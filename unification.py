@@ -243,41 +243,81 @@ def formula_uses(formula: Prop, var_name: ModelRef):
     # For compound logical expressions (And, Or, Imp), recursively check both sides of the expression.
     if isinstance(formula, And) or isinstance(formula, Or) or isinstance(formula, Imp):
         return formula_uses(formula.p, var_name) or formula_uses(formula.q, var_name)
+
+    # For quantified expressions (ForAll, Exists), check if the variable is the bound variable
+    # or if it is used within the quantified formula.
     elif isinstance(formula, ForAll) or isinstance(formula, Exists):
         return formula.var == var_name or formula_uses(formula.formula, var_name)
+
+    # For predicates, check if the variable is among the predicate's arguments.
     elif isinstance(formula, Predicate):
         return var_name in formula.args
+
+    # If none of the above cases apply, return False indicating the variable is not used in the formula.
     return False
 
 
 def get_symbols(formula: Prop) -> tuple[Set[ModelRef], Set[ModelRef]]:
+    # Extracts and returns two sets of symbols from a logical formula: one for proposition symbols
+    # and another for variable symbols. This can be useful for identifying all the unique elements
+    # within a formula.
+
+    # Handles compound logical expressions by recursively gathering symbols from both sides.
     if isinstance(formula, And) or isinstance(formula, Or) or isinstance(formula, Imp):
-        lsym, lvar = get_symbols(formula.p)
-        rsym, rvar = get_symbols(formula.q)
-        return lsym | rsym, lvar | rvar
+
+        # Recursively get symbols for left and right sides of the compound expression.
+        # This accounts for complex nested structures within the logical formula.
+        lsym, lvar = get_symbols(formula.p) # Left side symbols
+        rsym, rvar = get_symbols(formula.q) # Right side symbols
+
+        return lsym | rsym, lvar | rvar     # Union of left and right side symbols
+
+    # For quantified expressions (ForAll, Exists), the bound variable is explicitly included in both sets.
+    # This acknowledges the variable's presence in the formula, important for both sets' completeness.
     elif isinstance(formula, ForAll) or isinstance(formula, Exists):
         assert isinstance(formula.var, ModelRef)
-        sym, var = get_symbols(formula.formula)
-        return sym | {formula.var}, var | {formula.var}
+        sym, var = get_symbols(formula.formula)  # Recursively extract symbols from the quantified formula.
+        return sym | {formula.var}, var | {formula.var} # Include the bound variable
+    
+    # For predicates, arguments are directly treated as symbols, but only added to the first set.
     elif isinstance(formula, Predicate):
         return set(formula.args), set()
+
+    # If the formula doesn't match any of the above types, empty sets are returned.
+    # This case handles simple propositions or other forms not requiring symbol extraction.
     return set(), set()
 
 
 class Argument:
+    # The Argument class serves as a base class for various logical arguments within the system.
+    # Its primary role is to provide a common interface for verifying arguments based on a line of proof and a set of constants.
+
     def verify(self, line: Line, constants: Set[ModelRef]):
+        # Calls typecheck with the type of the line as an argument.
+        # This method is intended to be overridden in subclasses where specific verification logic is implemented.
         return self.typecheck(line.typ)
 
     def typecheck(self, _: Prop) -> bool:
+        # Placeholder method for type checking, to be implemented by subclasses.
+        # Raises NotImplemented error indicating it needs to be overridden.
         raise NotImplemented
 
 
 def make_argument(rule: tuple[Prop, Prop], name: str) -> Callable[[Line], Argument]:
+    # Factory function to create argument instances based on a rewriting rule.
+    # This allows for dynamic creation of argument types based on logical rules defined elsewhere in the system.
+
     class RW(Argument):
+        # Nested class within make_argument, represents a rewrite argument derived from the Argument base class.
+        # This class is specific to implementing a type of logical argument that involves rewriting propositions.
+
         def __init__(self, old: Line) -> None:
+            # Initializes the RW argument with a reference to an existing line of proof (old).
             self.old = old
 
         def typecheck(self, new: Prop) -> bool:
+            # Implements the typecheck method to verify the new proposition against the old one using the provided rule.
+            # The try_rewrite function is called with the old and new propositions alongside the rule, determining if the rewrite is valid.
             try_rewrite((self.old.typ, new), rule)
             return True
 
