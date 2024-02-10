@@ -122,6 +122,28 @@ Prop = Union[
 ]
 
 ### These are type check actions on the type system ###
+# The latter part of the props.py file defines a series of functions for
+# logical operations and type checking within the logical proof system. These
+# functions are designed to:
+
+# - Apply and compose implications: Determine how one logical statement can
+# lead to another, either directly or through composition.  
+# 
+# - Project: Extract specific components of a compound logical statement.  
+#
+# - Inject: Create new logical statements by combining existing ones.  
+#
+# - Handle diagonals and codiagonals: Work with propositions that are repeated
+# in logical structures or need simplification.  
+#
+# - Combine and differentiate implications: Based on shared antecedents or
+# consequents, showing the system's ability to manipulate and reason about
+# complex logical relationships.
+
+# These operations are essential for the manipulation and analysis of logical
+# propositions, allowing the system to verify, simplify, and derive logical
+# conclusions from given premises. They provide the foundational logic needed
+# to support a wide range of reasoning tasks within the proof system.
 
 # Apply function: Attempts to apply an implication.
 def apply(f: Prop, x: Prop) -> Prop:
