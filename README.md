@@ -20,7 +20,7 @@ $ pip install /path/to/repository
 ```
 or by installing directly from GitHub:
 ```
-$ pip install git+https://github.com/raghav198/proof-mouse
+$ pip install git+https://github.com/Jmw150/proof-mouse
 ```
 This will install the `mouse` executable.
 
