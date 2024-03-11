@@ -1,5 +1,5 @@
 # ProofMouse
-ProofMouse is a proof assistant for a propositional logic based on Gentzen-style proofs.
+ProofMouse is a proof assistant for a propositional and predicate logic based on Gentzen-style proofs.
 
 ## Table of Contents
 * [Getting Started](#getting-started)
