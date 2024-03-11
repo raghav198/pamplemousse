@@ -41,13 +41,14 @@ To enter a hypothetical world, preface the line number with a vertical line: `|`
 An example proof of the exportation property is shown below:
 ```
 A -> (B -> C)
-1. A /\ B -> C prem;
-| 2. A hyp;
-| | 3. B hyp;
-| | 4. A /\ B conj 2, 3;
-| | 5. C mp 1, 4;
-| 6. B -> C ded 3-5;
-7. A -> (B -> C) ded 2, 6;
+
+1. A /\ B -> C      prem;
+| 2. A              hyp;
+| | 3. B            hyp;
+| | 4. A /\ B       conj 2, 3;
+| | 5. C            mp 1, 4;
+| 6. B -> C         ded 3-5;
+7. A -> (B -> C)    ded 2, 6;
 ```
 Note that the order of arguments to an inference rule matters! For example, proof checking would fail if line 5 instead read `| | 5. C mp 4, 1;`
 
